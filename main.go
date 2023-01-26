@@ -14,10 +14,10 @@ type token struct {
 var wg sync.WaitGroup
 
 func node(thread_index int, ch_resv chan token, ch_send chan token) {
+	defer wg.Done()
 	for { // waiting for any signal
 		message := <-ch_resv
 		if message.data == "qqq" {
-			ch_send <- message
 			break
 		}
 		fmt.Println("Thread ", thread_index, "| Recieved message.")
@@ -32,7 +32,7 @@ func node(thread_index int, ch_resv chan token, ch_send chan token) {
 			}
 		}
 	}
-	wg.Done()
+
 }
 
 func main() {
@@ -57,14 +57,14 @@ func main() {
 		}
 	}
 
-	for threads_number > 0 {
+	var new_token token
 
-		var new_token token
+	for threads_number > 0 {
 
 		fmt.Println("MAIN THREAD| Enter message data or write qqq to exit")
 		fmt.Scanln(&new_token.data)
 		if new_token.data == "qqq" {
-			quit <- 0
+			channels[0] <- new_token
 			break
 		}
 		fmt.Println("MAIN THREAD| Enter recipient id (starting from 0)")
@@ -82,6 +82,9 @@ func main() {
 
 		channels[0] <- new_token
 
+	}
+	for i := 1; i < threads_number; i++ {
+		channels[i] <- new_token
 	}
 	wg.Wait()
 	for i := 1; i < threads_number; i++ { // creating threads
